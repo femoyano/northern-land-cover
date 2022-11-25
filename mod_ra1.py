@@ -184,13 +184,13 @@ def plotLambert(xarray, fig_size=[12,5], cmap='RdYlGn'):
     plt.colorbar(p, label=xarray.attrs['units'])
     plt.show()
 
-def plotOrthoSig(xr_val, xr_pval, fig_size=[16,6], cmap='RdYlGn'):
+def plotOrthoSig(xr_val, xr_pval, p_lim, fig_size=[16,6], cmap='RdYlGn'):
     # Map plot of flux trends globally
     # Plot the region of interest
     fig = plt.figure(figsize=fig_size)
     ax1 = fig.add_subplot(121, projection = ccrs.Orthographic(-70, 20), facecolor="white")
     ax2 = fig.add_subplot(111, projection = ccrs.Orthographic(70, 20), facecolor="white")
-    xr_val_sig = xr_val.where(xr_pval < 0.1) # Change the p+value limit to filter for trend significance
+    xr_val_sig = xr_val.where(xr_pval < p_lim) # Change the p+value limit to filter for trend significance
     p1 = xr_val_sig.plot(ax = ax1, transform=ccrs.PlateCarree(), cmap=cmap, add_colorbar=False)
     p2 = xr_val_sig.plot(ax = ax2, transform=ccrs.PlateCarree(), cmap=cmap, add_colorbar=False)
     # ax1.set_global()
