@@ -104,7 +104,7 @@ def get_co2fluxampstats(co2fluxAmp, period=None):
 
     # Selecting a time period
     if(period is not None):
-        co2fluxAmp = co2fluxAmp.sel(time=slice(str(period[0]), str(period[1])))
+        co2fluxAmp = co2fluxAmp.sel(year=slice(period[0], period[1]))
 
     fluxamp_stats = linear_trend(co2fluxAmp, 'year')
     fluxamp_stats.slope.attrs['units'] = 'tC/ha/y'
