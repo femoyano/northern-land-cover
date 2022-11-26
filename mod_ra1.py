@@ -18,8 +18,6 @@ def procInvCO2(invco2_file, roi_file = None, nodata_val = None):
     co2InvRaw_List = rio.open_rasterio(invco2_file, variable='co2flux_land')
     co2InvRaw = co2InvRaw_List['co2flux_land']  # Extracting the dataarray from the list
     co2InvRaw = co2InvRaw.rename({'mtime': 'time'})  # Rename the time dimension and coordinate to something standard.
-    co2InvRaw = co2InvRaw.rename({'x': 'longitude'})  # Rename the time dimension and coordinate to something standard.
-    co2InvRaw = co2InvRaw.rename({'y': 'latitude'})  # Rename the time dimension and coordinate to something standard.
     co2InvRaw.attrs['units'] = 'PgC/yr'  # For some reason the units is a tuple of repeating values. Replacing with single value.
     co2InvRaw.rio.write_crs(4326, inplace=True)  # Set the crs: in this case the data is in epsg4326. This creates the spatial_ref coordinate.
 
@@ -31,13 +29,11 @@ def procInvCO2(invco2_file, roi_file = None, nodata_val = None):
     # Get the pixel area and change the units to tC/ha/y
     pixarea_List = rio.open_rasterio(invco2_file, variable='area')
     pixarea = pixarea_List['area']
-    pixarea = pixarea.rename({'x': 'longitude'})  # Rename the time dimension and coordinate to something standard.
-    pixarea = pixarea.rename({'y': 'latitude'})  # Rename the time dimension and coordinate to something standard.
     landarea = pixarea[0]
     landarea.attrs['units'] = 'm2'
     landarea.coords.__delitem__('rt')
 
-    # Convert the co2 flux units: pixel to sqm, then to ha; and petagram to tons, so PgC y-1 -> tC ha-2 y-1
+    # Convert the co2 flux units: pixel to sqm, then to ha; and petagram to tons, so PgC y-1 -> tC ha-1 y-1
     co2Inv = co2InvRaw / landarea * 10000 * 10**9 # to ha, to tons.
 
     # Add some important attributes
@@ -91,11 +87,13 @@ def get_CO2fluxSeasAmp(co2flux):
     def diff(x):
         return(x[0] - x[1])  # Oct-Mar average flux minus Apr-Sep average flux. Signs are correct for NH. SH sign is corrected below.
     co2fluxSeasDiff = co2fluxSeas.groupby('year').map(diff)  # Apply the difference function for each year
-    co2fluxSeasDiff = co2fluxSeasDiff.where(co2fluxSeasDiff.latitude > 0, co2fluxSeasDiff * (-1))  # Correct the sign in the Southern Hemisphere
+    co2fluxSeasDiff = co2fluxSeasDiff.where(co2fluxSeasDiff.y > 0, co2fluxSeasDiff * (-1))  # Correct the sign in the Southern Hemisphere
 
     # Rename the xarray data array and setting the crs
     co2fluxSeasDiff = co2fluxSeasDiff.rename('co2flux_yearlyamp')
     co2fluxSeasDiff.rio.write_crs(4326, inplace=True)
+    co2fluxSeasDiff.attrs['long_name'] = 'CO2 flux seasonl amplitude'
+    co2fluxSeasDiff.attrs['units'] = 'tC/ha/y'
 
     return(co2fluxSeasDiff)
 
