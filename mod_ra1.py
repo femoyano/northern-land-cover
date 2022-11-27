@@ -92,7 +92,7 @@ def get_CO2fluxSeasAmp(co2flux):
     # Rename the xarray data array and setting the crs
     co2fluxSeasDiff = co2fluxSeasDiff.rename('co2flux_yearlyamp')
     co2fluxSeasDiff.rio.write_crs(4326, inplace=True)
-    co2fluxSeasDiff.attrs['long_name'] = 'CO2 flux seasonl amplitude'
+    co2fluxSeasDiff.attrs['long_name'] = 'CO2 flux seasonal amplitude'
     co2fluxSeasDiff.attrs['units'] = 'tC/ha/y'
 
     return(co2fluxSeasDiff)
