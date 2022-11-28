@@ -34,7 +34,7 @@ def plotOrthographic(xr_val, ident, fig_size=[16,6], cmap='RdYlGn', reverse_cmap
     plt.savefig(fname)
 
 
-def plotRegMeans(xr_val, lats, ident):
+def plotLatMeans(xr_val, lats, ident):
     # Calculate the spatial mean and plot.
     lats_str = str(lats)
     fig = plt.figure()
