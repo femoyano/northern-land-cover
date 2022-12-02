@@ -46,10 +46,10 @@ def procInvCO2(invco2_file, roi_file = None, nodata_val = None):
 
     return(co2InvS)
 
-def get_CO2fluxSeasAmp(co2flux):
+def get_CO2fluxSeasAmp(nee):
     """
     This function calculates the yearly aplitude between winter and summer months co2 fluxes.
-    co2flux must be an xarray array with monthly data.
+    nee must be an xarray array with monthly data.
     
     # Calculating seasonal amplitudes and temporal amplitude trends
     1. First create a 'groups' coordinate from the combination of years and seasons (winter and summer: Oct-Mar, Apr-Sep).
@@ -60,17 +60,17 @@ def get_CO2fluxSeasAmp(co2flux):
     """
 
     # Extract the month values
-    months = co2flux.time.dt.month.data
+    months = nee.time.dt.month.data
     # Split year in two periods of 6 months each (two seasons) and code as: 0 = Oct-Mar, 1 = Apr-Sep
     season = np.where((months < 4) | (months > 9), 0, 1)
     # Create year-season groups for grouped calculations 
-    groups = co2flux.time.dt.year.data + (season/10)
+    groups = nee.time.dt.year.data + (season/10)
     # Set as coordinate
-    co2flux['groups'] = ('time', groups)
+    nee['groups'] = ('time', groups)
 
     # Calculate the mean for each year-season group
     # co2InvTG = invco2flux.groupby(['time.year', 'season']).mean()  # Does not work! Grouping by two variables is not supported in xarray!
-    co2fluxSeasRate = co2flux.groupby('groups').mean()  # Get the mean values of surface co2 fluxes by year-season
+    co2fluxSeasRate = nee.groupby('groups').mean()  # Get the mean values of surface co2 fluxes by year-season
     # Calculate the total seasonal flux by multiplying the mean by the 6 month time period (i.e. 0.5 years)
     co2fluxSeas = co2fluxSeasRate * 0.5
     # Add again the coordinate representing years
