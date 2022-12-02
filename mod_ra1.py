@@ -10,7 +10,7 @@ import numpy as np
 from xarrayutils.utils import linear_trend
 
 
-def procInvCO2(invco2_file, roi_file = None, nodata_val = None):
+def proc_neeInv(invco2_file, roi_file = None, nodata_val = None):
 
     # All three file reading methods read in the attributes differently.
     # co2InvRaw = rio.open_rasterio(file_path)
@@ -46,7 +46,7 @@ def procInvCO2(invco2_file, roi_file = None, nodata_val = None):
 
     return(co2InvS)
 
-def get_CO2fluxSeasAmp(nee):
+def get_neeSeasAmp(nee):
     """
     This function calculates the yearly aplitude between winter and summer months co2 fluxes.
     nee must be an xarray array with monthly data.
@@ -69,13 +69,13 @@ def get_CO2fluxSeasAmp(nee):
     nee['groups'] = ('time', groups)
 
     # Calculate the mean for each year-season group
-    # co2InvTG = invco2flux.groupby(['time.year', 'season']).mean()  # Does not work! Grouping by two variables is not supported in xarray!
-    co2fluxSeasRate = nee.groupby('groups').mean()  # Get the mean values of surface co2 fluxes by year-season
+    # co2InvTG = invnee.groupby(['time.year', 'season']).mean()  # Does not work! Grouping by two variables is not supported in xarray!
+    neeSeasRate = nee.groupby('groups').mean()  # Get the mean values of surface co2 fluxes by year-season
     # Calculate the total seasonal flux by multiplying the mean by the 6 month time period (i.e. 0.5 years)
-    co2fluxSeas = co2fluxSeasRate * 0.5
+    neeSeas = neeSeasRate * 0.5
     # Add again the coordinate representing years
-    years = np.round(co2fluxSeas.coords['groups'].data)
-    co2fluxSeas['year'] = ('groups', years)
+    years = np.round(neeSeas.coords['groups'].data)
+    neeSeas['year'] = ('groups', years)
 
     # Check results:
     # print(co2InvTG[0:,0,0])
@@ -86,42 +86,42 @@ def get_CO2fluxSeasAmp(nee):
     # Calculate the difference between winter (positive) and summer (negative) mean fluxes. For the southern hemisphere the sign is corrected afterwards.
     def diff(x):
         return(x[0] - x[1])  # Oct-Mar average flux minus Apr-Sep average flux. Signs are correct for NH. SH sign is corrected below.
-    co2fluxSeasDiff = co2fluxSeas.groupby('year').map(diff)  # Apply the difference function for each year
-    co2fluxSeasDiff = co2fluxSeasDiff.where(co2fluxSeasDiff.y > 0, co2fluxSeasDiff * (-1))  # Correct the sign in the Southern Hemisphere
+    neeSeasDiff = neeSeas.groupby('year').map(diff)  # Apply the difference function for each year
+    neeSeasDiff = neeSeasDiff.where(neeSeasDiff.y > 0, neeSeasDiff * (-1))  # Correct the sign in the Southern Hemisphere
 
     # Rename the xarray data array and setting the crs
-    co2fluxSeasDiff = co2fluxSeasDiff.rename('co2flux_yearlyamp')
-    co2fluxSeasDiff.rio.write_crs(4326, inplace=True)
-    co2fluxSeasDiff.attrs['long_name'] = 'CO2 flux seasonal amplitude'
-    co2fluxSeasDiff.attrs['units'] = 'tC/ha/y'
+    neeSeasDiff = neeSeasDiff.rename('nee_yearlyamp')
+    neeSeasDiff.rio.write_crs(4326, inplace=True)
+    neeSeasDiff.attrs['long_name'] = 'CO2 flux seasonal amplitude'
+    neeSeasDiff.attrs['units'] = 'tC/ha/y'
 
-    return(co2fluxSeasDiff)
+    return(neeSeasDiff)
 
 
-def get_co2fluxampstats(co2fluxAmp, period=None):
+def get_neeAmpStats(neeAmp, period=None):
 
     # Selecting a time period
     if(period is not None):
-        co2fluxAmp = co2fluxAmp.sel(year=slice(period[0], period[1]))
+        neeAmp = neeAmp.sel(year=slice(period[0], period[1]))
 
-    fluxamp_stats = linear_trend(co2fluxAmp, 'year')
+    fluxamp_stats = linear_trend(neeAmp, 'year')
     fluxamp_stats.slope.attrs['units'] = 'tC/ha/y'
     fluxamp_stats.slope.attrs['long_name'] = 'Trend in seasonal CO2 flux amplitude'
     fluxamp_stats.rio.write_crs(4326, inplace=True)
 
     # Variance
-    fluxamp_var = co2fluxAmp.var(dim='year')
+    fluxamp_var = neeAmp.var(dim='year')
     fluxamp_var.attrs['units'] = 'tC/ha/y'
     fluxamp_var.attrs['long_name'] = 'Temporal variance in seasonal CO2 flux amplitude'
     fluxamp_var.rio.write_crs(4326, inplace=True)
-    fluxamp_var = fluxamp_var.rename('co2fluxamp_variance')
+    fluxamp_var = fluxamp_var.rename('neeamp_variance')
 
     # Mean
-    fluxamp_mean = co2fluxAmp.mean(dim='year')
+    fluxamp_mean = neeAmp.mean(dim='year')
     fluxamp_mean.attrs['units'] = 'tC/ha/y'
     fluxamp_mean.attrs['long_name'] = 'Temporal mean in seasonal CO2 flux amplitude'
     fluxamp_mean.rio.write_crs(4326, inplace=True)
-    fluxamp_mean = fluxamp_mean.rename('co2fluxamp_mean')
+    fluxamp_mean = fluxamp_mean.rename('neeamp_mean')
 
     fluxamp_stats['mean'] = fluxamp_mean
     fluxamp_stats['variance'] = fluxamp_var
