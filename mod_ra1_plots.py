@@ -54,6 +54,24 @@ def plotLatMeans(xr_val, lats, ident):
     # plt.show
     plt.savefig(fname)
 
+def plotRegMeans(xr_val, regions, ident):
+    # Calculate the spatial mean and plot.
+    var = xr_val.name
+    fig = plt.figure()
+    ax1 = fig.add_subplot()
+    for roi, mask in regions.items():
+        regDiffMean = xr_val.where(mask).mean(['x','y'])
+        label = roi
+        del regDiffMean['spatial_ref']  # Remove coordinate so it doesn't show as title.
+        regDiffMean.attrs['units'] = 'tC/ha'  # Add the new units
+        regDiffMean.attrs['long_name'] = "Land CO2 flux winter-summer amplitude"
+        regDiffMean.plot(ax=ax1, label=label)
+    plt.legend()
+    ax1.set_title(regDiffMean.attrs['long_name'])
+    fname =  os.path.join(output_dir, var+'_regmean_'+label+'_'+ident+'.png')
+    # plt.show
+    plt.savefig(fname)
+
 def plotLambert(xr_val, ident, fig_size=[12,5], cmap='RdYlGn'):
     fig = plt.figure(figsize=fig_size)
     var = xr_val.name
