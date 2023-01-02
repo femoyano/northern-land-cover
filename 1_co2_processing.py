@@ -19,7 +19,7 @@
 #     - This is the NEE flux amplitude that can then be related to atmospheric CO2 and driving variables. 
 # 
 
-#%%
+# %%
 # Magic commands to updated functions when python module is modified
 # %load_ext autoreload
 # %autoreload 2
