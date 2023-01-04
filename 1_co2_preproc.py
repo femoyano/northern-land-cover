@@ -208,7 +208,7 @@ for inv in cams_inversions:
 # %%
 # -----
 # Save the trend data to GeoTiff (useful if reading into Earth Engine is required)
-# Saving the database (not as an array) keeps the band name info. (But seems like Earth Engine does not import band names)
+# Saving the database (not as an array) keeps the band name info. (But seems like Earth Engßine does not import band names)
 # file_out = os.path.join(output_dir, 'neeAmpStats_Inv' + ident + '.tif')
 # neeAmpStats.rio.to_raster(file_out)
 
