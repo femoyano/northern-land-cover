@@ -8,14 +8,17 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.11.2
+#   kernelspec:
+#     display_name: landcover
+#     language: python
+#     name: python3
 # ---
 
-# %%
-# Plotting ----
-
-# Get all required packages
+# %% [markdown]
+# ## Plotting and Regional Analysis
 
 # %%
+# Magic commands
 # %load_ext autoreload
 # %autoreload 2
 
@@ -31,7 +34,7 @@ from mod_ra1_plots import *
 # %%
 # Option
 
-do_plot_stats = False
+do_plot_stats = True
 
 
 # %%
@@ -39,17 +42,17 @@ do_plot_stats = False
 input_dir = '../data_input/'
 output_dir = '../data_output/'
 
-inversions = ['s76', 's81', 's85', 's93', 's99', 's06', 's10']
+inversions = ['sEXT', 's76', 's81', 's85', 's93', 's99', 's06', 's10']
 
 # Choose the list of inversion data version to analyse. Later (shorter) time series are driven by data from more stations.
-inv_startyear = {'s76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversion version and starting year
+inv_startyear = {'sEXT':1957, 's76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversion version and starting year
 # inv_startyear = {'s99':1999}
 
 # Number of stations of each inversion version
-inv_nstations = {'s76':9, 's81':14, 's85':21, 's93':35, 's99':49, 's06':59, 's10':78}
+inv_nstations = {'sEXT': 169,'s76':9, 's81':14, 's85':21, 's93':35, 's99':49, 's06':59, 's10':78}
 
-# List of strating years to define analysis periods
-periods = [(1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)]
+# List of start and end years to define analysis periods
+periods = [(1957,2021), (1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)]
 # periods = [(1999,2021)]
 
 # %%
@@ -113,7 +116,7 @@ kopp = kopp.where(kopp != kopp.rio.nodata)
 kopp_rp = kopp.rio.reproject_match(neeAmp)
 
 conts = gpd.read_file('../data_input/continents.geojson')
-cont_bounds = {'Asia': [24,0,190,81], 'Europe': [-31, 35, 69, 81], 'North America': [-178, 0, -15, 84]}
+cont_bounds = {'Asia': [24, 0, 190, 81], 'Europe': [-31, 35, 69, 81], 'North America': [-178, 0, -15, 84]}
 
 # # Manual geometries
 # geom_lat10_30 = sh.geometry.box(-179, 10, 179, 30)
@@ -166,8 +169,8 @@ roimask['northamer_tempcold'].plot()
 #                           'regcolor': kopp_cols, 'area': np.nan, 'co2amp_var': np.nan})
 
 # Choose the list of inversion data version to analyse. Later (shorter) time series are driven by data from more stations.
-# inv_startyear = {'s76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversion version and starting year
-inv_startyear = {'s99':1999} 
+inv_startyear = {'sEXT':1957, 's76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversion version and starting year
+inv_startyear = {'sEXT':1957} 
 
 # List of strating years to define analysis periods
 # periods = [(1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)]

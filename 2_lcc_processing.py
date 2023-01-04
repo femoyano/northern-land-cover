@@ -1,6 +1,22 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: -all
+#     custom_cell_magics: kql
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.11.2
+#   kernelspec:
+#     display_name: landcover
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
 # ### Creating new time series rasters for each land cover
-# 
+#
 # **Steps**
 # - Define arrays with LC indeces and LC names according to the MODIS LC type used. (see the data documentation)
 # - Define paths to files, create sorted list of file names
