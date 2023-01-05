@@ -42,18 +42,20 @@ do_plot_stats = True
 input_dir = '../data_input/'
 output_dir = '../data_output/'
 
-inversions = ['sEXT', 's76', 's81', 's85', 's93', 's99', 's06', 's10']
+inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 
 # Choose the list of inversion data version to analyse. Later (shorter) time series are driven by data from more stations.
-inv_startyear = {'sEXT':1957, 's76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversion version and starting year
-# inv_startyear = {'s99':1999}
+inv_startyear = {'CSsEXT':1957, 'CSs76':1976, 'CSs81':1981, 'CSs85':1985, 'CSs93':1993, 'CSs99':1999,
+            'CSs06':2006, 'CSs10':2010, 'CAMSsur':1979, 'CAMSsat': 2010}  # Inversion names and starting year
+# inv_startyear = {'CSs99':1999}
 
 # Number of stations of each inversion version
-inv_nstations = {'sEXT': 169,'s76':9, 's81':14, 's85':21, 's93':35, 's99':49, 's06':59, 's10':78}
+inv_nstations = {'CSsEXT': 169,'CSs76':9, 'CSs81':14, 'CSs85':21, 'CSs93':35, 'CSs99':49, 'CSs06':59, 'CSs10':78, 'CAMSsur':-999, 'CAMSsat':0}
 
 # List of start and end years to define analysis periods
-periods = [(1957,2021), (1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)]
-# periods = [(1999,2021)]
+periods = [(1961,2021), (1981,2021), (2001,2021), (2010,2021)]
+# periods = [(1957,2021), (1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)] # These corrspond to carboscope inv start years
+# periods = [(2001,2021)]
 
 # %%
 if do_plot_stats:
@@ -73,12 +75,12 @@ if do_plot_stats:
 
             print('Reading data: ', inv, ', period: ', period)
 
-            ident = str(period[0])+'-'+str(period[1])+'_Inv'+str(inv_start)
+            ident = str(period[0])+'-'+str(period[1])+'_'+inv
             file_in_stats = os.path.join(output_dir, 'neeAmpStats_'+ident+'.nc')
             neeAmpStats = rio.open_rasterio(file_in_stats)
 
             # Map plot of flux trends
-            plotLambert(xr_val=neeAmpStats.slope, ident=ident)
+            # plotLambert(xr_val=neeAmpStats.slope, ident=ident)
 
             # Plot slope with significance filter = 0.1
             # plotOrthoSig(xr_val=neeAmpStats.slope, ident=ident, p_lim=0.1, xr_pval=neeAmpStats.p_value, vmin=-0.08, vmax=0.08)
@@ -106,7 +108,7 @@ if do_plot_stats:
 import shapely as sh
 
 # Load the nee data to reproject_match other data ----
-file_neeAmpStats = os.path.join(output_dir, 'neeAmpStats_2010-2021_Inv2010.nc')
+file_neeAmpStats = os.path.join(output_dir, 'neeAmpStats_2010-2021_CSsEXT.nc')
 neeAmp = rio.open_rasterio(file_neeAmpStats)
 
 # Setup regions
@@ -169,23 +171,25 @@ roimask['northamer_tempcold'].plot()
 #                           'regcolor': kopp_cols, 'area': np.nan, 'co2amp_var': np.nan})
 
 # Choose the list of inversion data version to analyse. Later (shorter) time series are driven by data from more stations.
-inv_startyear = {'sEXT':1957, 's76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversion version and starting year
-inv_startyear = {'sEXT':1957} 
+inv_startyear = {'CSsEXT':1957, 'CSs76':1976, 'CSs81':1981, 'CSs85':1985, 'CSs93':1993, 'CSs99':1999,
+            'CSs06':2006, 'CSs10':2010, 'CAMSsur':1979, 'CAMSsat': 2010}  # Inversion names and starting year
+inv_startyear = {'CAMSsur':1979, 'CAMSsat': 2010} 
 
 # List of strating years to define analysis periods
 # periods = [(1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)]
-periods = [(1999,2021)]
+periods = [(2001,2021)]
   
 for inv in inv_startyear:
 
     inv_start = inv_startyear[inv]
 
-    ident = 'Inv'+str(inv_start)
+    ident = inv#+str(inv_start)
 
-    file_in_amp = os.path.join(output_dir, 'neeAmp_Inv'+str(inv_start)+'.nc')
+    file_in_amp = os.path.join(output_dir, 'neeAmp_'+ inv +'.nc')
     neeAmp = rio.open_rasterio(file_in_amp)
 
     # Clip to the roi
+    print('Plotting: ', file_in_amp)
 
     plotRegMeans(xr_val=neeAmp, regions=roimask, ident=ident)
 
