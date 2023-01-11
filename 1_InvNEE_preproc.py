@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -32,7 +33,9 @@
 #
 # Carboscope inversions differ in the amount of stations data used to create them. Versions starting earlier have less stations with the excpetion fo sEXT, which uses a relatiosnhip between NEE adn temperature.
 #
-# CAMS inversions have two versions: surface and satellite. Surface is similar to Carboscope, i.e. driven by surface CO2 data, but has non zero priors (I thinkn model based). Satellite uses satellite column CO2 data. This data starts in mid-2009, but the file used here starts in 2010-01 in order to have whole years. 
+# CAMS inversions have two versions: surface and satellite. Surface is similar to Carboscope, i.e. driven by surface CO2 data, but has non zero priors (I thinkn model based). Satellite uses satellite column CO2 data. This data starts in mid-2009, but the file used here starts in 2010-01 in order to have whole years.
+#
+# Currently (2023-01) I'm using CAMS monthly inversion data, as downloaded from the net. The daily Carboscope data is then averaged from daily to monthly to have equal frequency. But there is also the option to download 'instantaneous' CAMS data, which is 3-hourly and could be averaged to daily, and then analyze everything with daily frequency.
 # %%
 # Magic commands to updated functions when python module is modified
 # %load_ext autoreload
@@ -69,6 +72,14 @@ conts_file = os.path.join(input_dir, 'continents.geojson')
 
 # Set the region to use for the analysis
 roi_file = conts_file
+
+# Get the Carboscope projection to reproject other data
+CS_file = geospat_dir + 'Carboscope/Inversions/' + 's10oc_v2022_daily.nc'
+CS_inv = rio.open_rasterio(CS_file, variable='co2flux_land')
+CS_inv = CS_inv['co2flux_land']
+CS_inv.rio.write_crs(4326, inplace=True)
+# %%
+CS_inv.rio.transform()
 
 # %%
 
@@ -136,6 +147,9 @@ def proc_CAMSinv(neeInv_file, inv, roi_file = None, nodata_val = None):
     neeInvRaw.attrs['units'] = 'kgC/m2/month'  # For reference only, define the raw units
     neeInvRaw.rio.write_crs(4326, inplace=True)  # Set the crs: in this case the data is in epsg4326. This creates the spatial_ref coordinate.
 
+    # Reproject to match resolution of Carboscope data
+    neeInvRaw = neeInvRaw.rio.reproject_match(CS_inv)
+
     # Setting nodata
     if(nodata_val is not None):
         neeInvRaw = neeInvRaw.rio.write_nodata(nodata_val)  # Define what value represents nodata
@@ -187,7 +201,7 @@ for inv in cs_inversions:
 
 
 # %%
-# Loop over inversion versions and analysis periods
+# Loop over inversions and analysis periods
     
 # Process CAMS inversions to get amplitudes
 for inv in cams_inversions:

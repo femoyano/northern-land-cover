@@ -69,7 +69,7 @@ roi_file = conts_file
 # Inversion names and starting years
 inversions = {'CSsEXT':1957, 'CSs76':1976, 'CSs81':1981, 'CSs85':1985, 'CSs93':1993, 'CSs99':1999,
             'CSs06':2006, 'CSs10':2010, 'CAMSsur':1979, 'CAMSsat': 2010}
-# cs_inversions = {'CSsEXT':1957}  # To run selected only
+# inversions = {'CAMSsur':1979, 'CAMSsat': 2010}  # To run selected only
 
 # Periods for temporal analysis
 # periods = [(1957,2021), (1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)] # based on CarboScope periods
