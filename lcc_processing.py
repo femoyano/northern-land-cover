@@ -54,8 +54,8 @@ inversion = 's99'  # Inversion starting year. Options: s85, s99, s06, s10
 input_dir = '../data_input/'
 output_dir = '../data_output/'
 
-lc_path_in = '/Users/moyanofe/BigData/GeoSpatial/LandCover/LandCover_MODIS_MCD12/MCD12C1'
-lc_path_out = '/Users/moyanofe/BigData/GeoSpatial/LandCover/LandCover_MODIS_MCD12/MCD12C1_proc'
+lc_path_in = '/Users/moyanofe/BigData/GeoSpatial/MODIS/MCD12C1/MCD12C1'
+lc_path_out = '/Users/moyanofe/BigData/GeoSpatial/MODIS/MCD12C1/MCD12C1_proc'
 
 # Index for MCD12C1 Land_Cover_Type_1_Percent: IGBP land cover types
 lcIndex = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]

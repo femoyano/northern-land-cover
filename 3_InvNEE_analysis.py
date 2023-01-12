@@ -32,9 +32,6 @@ from xarrayutils.utils import linear_trend
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 
-# Local modules
-from mod_ra1_plots import *
-
 # %%
 # Directories
 input_dir = '../data_input/'

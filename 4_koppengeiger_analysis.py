@@ -1,25 +1,41 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: -all
+#     custom_cell_magics: kql
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.11.2
+#   kernelspec:
+#     display_name: landcover
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
 # ## Regional Analysis
-# 
+#
 # ### Steps
-# 
+#
 # #### Step 1: Selection of regions of interest
-# 
+#
 # In this step we rank regions by their NEE flux seasonal amplitude variance over time.
 # For each region, the temporal NEE amp variance and total area are calculated.
 # Region to analyze further can then be selcted by ranking them according to variance or weighted variance
-# 
+#
 # 1. Load regions data
 # 2. Loop over regions. For each:
 #     - Calculate the variance in NEE flux seasonal amplitude
 #     - Calculate the total area
 # 3. Calculate global sum of variance*area
 # 4. Replace raster region indices with variance values and plot maps
-# 
+#
 # ### Notes:
-# 
+#
 # For regions, currently using the Koppen-Geiger data from : http://koeppen-geiger.vu-wien.ac.at/
-# 
+#
 
 # %%
 import os
@@ -125,7 +141,7 @@ def plot_KG(rast, cols, ticks, labels, fig_size, ident):
 
 # %%
 # Plot regions to check all looks good.
-# plot_KG(kopp, kopp_cols, kopp_ind, kopp_labels, [17,7], ident='global')
+plot_KG(kopp, kopp_cols, kopp_ind, kopp_labels, [17,7], ident='global')
 
 # %% [markdown]
 # ## Regional analysis
@@ -134,7 +150,7 @@ def plot_KG(rast, cols, ticks, labels, fig_size, ident):
 # Prepare variables ----
 
 # Load any of the inversion files to get area and do reproject_match
-neeAmp = rio.open_rasterio(os.path.join(output_dir, 'neeAmp_Inv2010.nc'))
+neeAmp = rio.open_rasterio(os.path.join(output_dir, 'neeAmp_CSs10.nc'))
 
 # Create area grid for neeAmp grid cells
 latcos = np.cos(np.deg2rad(neeAmp.y))
@@ -208,15 +224,13 @@ def reg_analysis(cont_name):
 # %%
 
 # Choose inversion data version to analyse.
-inv_startyear = {'s76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversionversion and starting year
-# inv_startyear = {'s99':1999}  # Inversion starting year. Options: s85, s99, s06, s10
+inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 
-for inv in inv_startyear:
+for inv in inversions:
     
-    inv_start = inv_startyear[inv]
-    file_in_amp = os.path.join(output_dir, 'neeAmp_Inv'+str(inv_start)+'.nc')
+    file_in_amp = os.path.join(output_dir, 'neeAmp_'+inv+'.nc')
     neeAmp = rio.open_rasterio(file_in_amp)
-    ident='Inv'+str(inv_start)
+    ident=inv
 
     # Analyze each continent
     df_nee_as = reg_analysis("Asia")
@@ -307,15 +321,13 @@ def plotGradMap(rast, cols, title, ident, vmax=None, vmin=None):
 
 # %%
 # Choose inversion data version to analyse.
-inv_startyear = {'s76':1976, 's81':1981, 's85':1985, 's93': 1993, 's99':1999, 's06':2006, 's10':2010}  # Inversionversion and starting year
-# inv_startyear = {'s99':1999}  # Inversion starting year. Options: s85, s99, s06, s10
+inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 
-for inv in inv_startyear:
+for inv in inversions:
     
-    inv_start = inv_startyear[inv]
-    file_df_nee_glob = os.path.join(output_dir, 'KG-neeAmpStats_Inv'+str(inv_start)+'.csv')
+    file_df_nee_glob = os.path.join(output_dir, 'KG-neeAmpStats_'+inv+'.csv')
     df_nee_glob = pd.read_csv(file_df_nee_glob)
-    ident='Inv'+str(inv_start)
+    ident=inv
     
     ds_kopp_nee = recodeConts(df_nee_glob)
 
