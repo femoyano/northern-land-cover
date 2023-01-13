@@ -17,6 +17,9 @@
 # %% [markdown]
 # ## Plotting and Regional Analysis
 
+# %% [markdown]
+# ### General settings
+
 # %%
 # Magic commands
 # %load_ext autoreload
@@ -31,27 +34,105 @@ import shapely as sh
 from xarrayutils.utils import linear_trend
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
+import numpy as np
 
 # %%
+# Paths to files and other useful variables
+ 
 # Directories
 input_dir = '../data_input/'
 output_dir = '../data_output/'
 figs_dir = '../figures/'
 
+# List of inversion short names
 inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 
-# Choose the list of inversion data version to analyse. Later (shorter) time series are driven by data from more stations.
+# Dictionary of inversion data with starting years.
 inv_startyear = {'CSsEXT':1957, 'CSs76':1976, 'CSs81':1981, 'CSs85':1985, 'CSs93':1993, 'CSs99':1999,
             'CSs06':2006, 'CSs10':2010, 'CAMSsur':1979, 'CAMSsat': 2010}  # Inversion names and starting year
-# inv_startyear = {'CSs99':1999}
 
-# Number of stations of each inversion version
+# Dictionary with number of stations used for each inversion.
 inv_nstations = {'CSsEXT': 169,'CSs76':9, 'CSs81':14, 'CSs85':21, 'CSs93':35, 'CSs99':49, 'CSs06':59, 'CSs10':78, 'CAMSsur':-999, 'CAMSsat':0}
 
 # List of start and end years to define analysis periods
 periods = [(1961,2021), (1981,2021), (2001,2021), (2010,2021)]
 # periods = [(1957,2021), (1976,2021), (1981,2021), (1985,2021), (1993,2021), (1999,2021), (2006,2021), (2010,2021)] # These corrspond to carboscope inv start years
 # periods = [(2001,2021)]
+
+# %%
+# ---- Masks and geometries for filtering and plotting data ----
+
+def roiDefine():
+    # Load the nee data to reproject_match other data
+    file_neeAmpStats = os.path.join(output_dir, 'neeAmpStats_2010-2021_CSsEXT.nc')
+    neeAmp = rio.open_rasterio(file_neeAmpStats)
+
+    # Load continent data to use as filter 
+    conts = gpd.read_file('../data_input/continents.geojson')
+
+    # Create masks using Koeppen-Geiger climate regions ---
+
+    # Load the Koeppen-Geiger data
+    kopp = rio.open_rasterio('../data_input/VU-VIENA/KG_1986-2010.grd', mask_and_scale=False)
+    kopp.rio.write_nodata(32, inplace=True) # Sets water as missing data
+    kopp = kopp.where(kopp != kopp.rio.nodata) # Not sure this is necessary
+    kopp_rp = kopp.rio.reproject_match(neeAmp) # Reproject to match inversion
+
+    # Define regions for further filtering
+    # geom_eastasia_tempwarm = sh.geometry.box(100, 20, 125, 35)
+    # geom_eastasia_tempcold = sh.geometry.box(115, 35, 135, 50)
+    geom_eastasia = sh.geometry.box(100, 0, 179, 90)
+    # geom_europe_temp = sh.geometry.box(-10, 40, 40, 55)
+    # geom_northamer_tempcold = sh.geometry.box(-130, 40. -50, 60)
+
+    # Create regional masks using Koeppen-Geiger climate regions ---
+    kopp_mask = dict()
+
+    cont = conts[conts['CONTINENT'] == 'Europe']
+    kopp_sel = kopp_rp.rio.clip(cont.geometry, cont.crs, all_touched=True, drop=False).squeeze()
+    # mask = kopp_sel.where(kopp_sel.isin([10])) # This would select the values instead of making a 0,1 mask
+    kopp_mask['europe_temp'] = kopp_sel.isin([10])
+
+    cont = conts[conts['CONTINENT'] == 'Asia']
+    kopp_sel = kopp_rp.rio.clip([geom_eastasia], drop=False).rio.clip(cont.geometry, cont.crs, all_touched=True, drop=False).squeeze()
+    kopp_mask['eastasia_tempwarm'] = kopp_sel.isin([9, 15])
+    kopp_mask['eastasia_tempcold'] = kopp_sel.isin([6, 26, 27])
+
+    cont = conts[conts['CONTINENT'] == 'North America']
+    kopp_sel = kopp_rp.rio.clip(cont.geometry, cont.crs, all_touched=True, drop=False).squeeze()
+    kopp_mask['northamer_tempcold'] = kopp_sel.isin([18, 19])
+
+
+    # Create geometries of latitudinal bands ---
+
+    geom_lat10_30 = sh.geometry.box(-179, 10, 179, 30)
+    geom_lat30_50 = sh.geometry.box(-179, 30, 179, 50)
+    geom_lat50_70 = sh.geometry.box(-179, 50, 179, 70)
+    geom_lat70_90 = sh.geometry.box(-179, 70, 179, 90)
+
+    lat_regions = {'lat10-30': geom_lat10_30, 'lat30-50': geom_lat30_50, 'lat50-70': geom_lat50_70, 'lat70-90': geom_lat70_90}
+
+    # Create latitudinal bands by continent
+
+    contlat_regions = dict()
+    cont_tuple = [('North America', 'NA'), ('Europe', 'EU'), ('Asia', 'AS')]
+    lats = lat_regions.copy()
+    lats.pop('lat10-30')
+    cont_bounds = {'Asia': sh.geometry.box(24, 0, 190, 81), 'Europe': sh.geometry.box(-31, 35, 69, 81), 'North America': sh.geometry.box(-178, 0, -15, 84)} # Was used to avoid plotting the entire globe
+
+    for cn, cs in cont_tuple:
+        cont = conts[conts['CONTINENT'] == cn]
+        for lat, latgeo in lats.items():
+            newgeom = cont.clip(cont_bounds[cn]).clip(latgeo)
+            contlat_regions[cs+'_'+lat] = newgeom.geometry.values[0]
+
+    return(kopp_mask, lat_regions, contlat_regions)
+
+kopp_mask, lat_regions, contlat_regions = roiDefine()
+
+
+# %% [markdown]
+# ### Analysis, maps and plots of inversion NEE amplitude
 
 # %%
 # Functions for plotting maps
@@ -134,7 +215,8 @@ def plotOrthoSig(xr_val, ident, p_lim=None, xr_pval=None, vmin=None, vmax=None, 
 
 
 # %%
-# 
+# Plot maps of neeAmp statistics
+
 for inv in inv_startyear:
 
     inv_start = inv_startyear[inv]
@@ -165,15 +247,15 @@ for inv in inv_startyear:
 
         # Plot variance without significance filter
         plotOrthoSig(xr_val=neeAmpStats.variance, ident=ident, p_lim=1, xr_pval=neeAmpStats.p_value, vmin=0, vmax=0.2, cmap='Oranges')
-            
+
 
 # %% [markdown]
-# ### Regional Analysis
+# ### Regional Analysis of inversion NEE amplitude
 #
-# Specific regions that coincide with NEE-amp trend or variance hotspots are selected for analysis.
+# Specific regions (e.g. that coincide with NEE-amp trend or variance hotspots) are selected for analysis.
 # A mask for selection is created by either:
 #
-# 1. clipping the data to a continent and selecting the KG climate region that overlaps with the hotspot, or
+# 1. clipping the data to a continent and masking with KG climate region that overlaps with the hotspot, or
 # 2. clipping to any geometry, such as latitudinal bands
 
 # %%
@@ -200,7 +282,7 @@ def plotInvMeans(inv_names, regions):
             regDiffMean.plot(ax=ax1, label=label)
         plt.legend()
         ax1.set_title(regDiffMean.attrs['long_name']+'\n'+inv)
-        fname =  os.path.join(figs_dir, 'time_series', var+'_'+inv+'.png')
+        fname =  os.path.join(figs_dir, 'time_series', var+'_inv_'+inv+'.png')
         # plt.show
         plt.savefig(fname)
 
@@ -225,73 +307,59 @@ def plotRegionMeans(regions, inv_names):
         plt.legend()
         ax1.set_title(regDiffMean.attrs['long_name']+'\n'+roi_name)
         var = xr_val.name
-        fname =  os.path.join(figs_dir, 'time_series', var+'_'+roi_name+'.png')
+        fname =  os.path.join(figs_dir, 'time_series', var+'_reg_'+roi_name+'.png')
         plt.savefig(fname)
 
 
 # %%
-# ---- Create masks and geometries for filtering and plotting data ----
-
-# Load the nee data to reproject_match other data
-file_neeAmpStats = os.path.join(output_dir, 'neeAmpStats_2010-2021_CSsEXT.nc')
-neeAmp = rio.open_rasterio(file_neeAmpStats)
-
-# Load continent data to use as filter 
-conts = gpd.read_file('../data_input/continents.geojson')
-cont_bounds = {'Asia': [24, 0, 190, 81], 'Europe': [-31, 35, 69, 81], 'North America': [-178, 0, -15, 84]} # This avoids plotting the entire globe
-
-# Create masks using Koeppen-Geiger climate regions ---
-
-# Load the Koeppen-Geiger data
-kopp = rio.open_rasterio('../data_input/VU-VIENA/KG_1986-2010.grd', mask_and_scale=False)
-kopp.rio.write_nodata(32, inplace=True) # Sets water as missing data
-kopp = kopp.where(kopp != kopp.rio.nodata) # Not sure this is necessary
-kopp_rp = kopp.rio.reproject_match(neeAmp) # Reproject to match inversion
-
-# Define regions for further filtering
-# geom_eastasia_tempwarm = sh.geometry.box(100, 20, 125, 35)
-# geom_eastasia_tempcold = sh.geometry.box(115, 35, 135, 50)
-geom_eastasia = sh.geometry.box(100, 0, 179, 90)
-# geom_europe_temp = sh.geometry.box(-10, 40, 40, 55)
-# geom_northamer_tempcold = sh.geometry.box(-130, 40. -50, 60)
-
-# Create regional masks using Koeppen-Geiger climate regions ---
-kopp_mask = dict()
-
-cont = conts[conts['CONTINENT'] == 'Europe']
-kopp_sel = kopp_rp.rio.clip(cont.geometry, cont.crs, all_touched=True, drop=False).squeeze()
-# mask = kopp_sel.where(kopp_sel.isin([10])) # This would select the values instead of making a 0,1 mask
-kopp_mask['europe_temp'] = kopp_sel.isin([10])
-
-cont = conts[conts['CONTINENT'] == 'Asia']
-kopp_sel = kopp_rp.rio.clip([geom_eastasia], drop=False).rio.clip(cont.geometry, cont.crs, all_touched=True, drop=False).squeeze()
-kopp_mask['asia_tempwarm'] = kopp_sel.isin([9, 15])
-kopp_mask['asia_tempcold'] = kopp_sel.isin([6, 26, 27])
-
-cont = conts[conts['CONTINENT'] == 'North America']
-kopp_sel = kopp_rp.rio.clip(cont.geometry, cont.crs, all_touched=True, drop=False).squeeze()
-kopp_mask['northamer_tempcold'] = kopp_sel.isin([18, 19])
-
-
-# Create geometries of latitudinal bands ---
-
-geom_lat10_30 = sh.geometry.box(-179, 10, 179, 30)
-geom_lat30_50 = sh.geometry.box(-179, 30, 179, 50)
-geom_lat50_70 = sh.geometry.box(-179, 50, 179, 70)
-geom_lat70_90 = sh.geometry.box(-179, 70, 179, 90)
-
-lat_regions = {'lat10-30': geom_lat10_30, 'lat30-50': geom_lat30_50, 'lat50-70': geom_lat50_70, 'lat70-90': geom_lat70_90}
-
-
-# %%
+# Plots of NEE-amp time series
 
 # List of inversions to plot.
 inv_names = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 # inv_names = ['CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10']
 
-
 plotInvMeans(inv_names=inv_names, regions=kopp_mask)
 plotInvMeans(inv_names=inv_names, regions=lat_regions)
 
 plotRegionMeans(lat_regions, inv_names)
+plotRegionMeans(contlat_regions, inv_names)
 plotRegionMeans(kopp_mask, inv_names)
+
+# %% [markdown]
+# ### Analysis of relationship between nee amplitude and NDVI/EVI
+
+# %%
+# Analysis of relationship between nee amplitude and NDVI/EVI
+
+vi_path = '/Users/moyanofe/BigData/GeoSpatial/MODIS/MOD13C2'
+
+vars = ['ndvi', 'evi']
+# inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
+inversions = ['CSsEXT', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
+periods = [(2001,2021), (2010,2021)]
+
+var = 'ndvi'
+inv = 'CSs99'
+period = (2001, 2021)
+
+# Create a template dataframe to save correlation results
+df_ndvi = pd.DataFrame({'region': list(contlat_regions.keys()), 'nee_amp': inv, 'corr_r': np.nan, 'corr_sig': np.nan})
+
+file_in_amp = os.path.join(output_dir, 'neeAmp_'+ inv +'.nc')
+file_in_ndvi = os.path.join(vi_path, 'MOD13C2.A_ndvi2000-2022.061.nc')
+neeAmp = rio.open_rasterio(file_in_amp)
+ndvi = rio.open_rasterio(file_in_ndvi)
+ndvi = ndvi['ndvi']
+
+# Select the period of interest
+neeAmp = neeAmp.sel(year=slice(period[0], period[1]))
+ndvi = ndvi.sel(time=slice(period[0], period[1]))
+
+for roi, roi_geom in contlat_regions.items():
+
+    neeAmp_roi = neeAmp.rio.clip([roi_geom]).mean(['x','y'])
+    ndvi_roi = ndvi.rio.clip([roi_geom]).mean(['x','y'])
+    neeAmp_vals = neeAmp_roi.values
+    ndvi_vals = ndvi_roi.values
+
+    

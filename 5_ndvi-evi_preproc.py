@@ -35,13 +35,13 @@ import pandas as pd
 # %%
 # Uncomment lines to choose processing NDVI or EVI
 
-# var_raw = 'CMG 0.05 Deg Monthly NDVI'
-# var_name = 'ndvi'
-# var_longname = "0.05Deg Monthly NDVI"
+var_raw = 'CMG 0.05 Deg Monthly NDVI'
+var_name = 'ndvi'
+var_longname = "0.05Deg Monthly NDVI"
 
-var_raw = 'CMG 0.05 Deg Monthly EVI'
-var_name = 'evi'
-var_longname = "0.05Deg Monthly EVI"
+# var_raw = 'CMG 0.05 Deg Monthly EVI'
+# var_name = 'evi'
+# var_longname = "0.05Deg Monthly EVI"
 
 # %%
 mod13c2_path_in = '/Users/moyanofe/BigData/GeoSpatial/MODIS/MOD13C2/v061_0.05deg'
@@ -77,6 +77,8 @@ for year in years:
     stacked.attrs['long_name'] = var_longname
     stacked.attrs['units'] = ''
     stacked['time'] = ('time', dates)
+    # stacked.rio.write_crs("epsg:4326", inplace=True)
+    stacked = stacked.rio.reproject("epsg:4326")
     ds_mod13c2 = xr.Dataset()
     ds_mod13c2[var_name] = stacked
 
@@ -111,11 +113,14 @@ for year in years:
 stacked = stacked.rename(var_name)
 stacked.attrs['long_name'] = var_longname
 stacked.attrs['units'] = ''
-stacked['time'] = ('time', years)
-ds_ndvi = xr.Dataset()
-ds_ndvi[var_name] = stacked
+stacked.coords['year'] = ('time', years)
+stacked.rio.write_crs("epsg:4326", inplace=True) # necessary?
+# ds_ndvi = xr.Dataset()
+# ds_ndvi[var_name] = stacked
 
 # Save to file
 file_out = 'MOD13C2.A_'+ var_name + '2000-2022'+'.061.nc'
 filepath_out = os.path.join(ndvi_path_out, file_out)
-ds_ndvi.to_netcdf(filepath_out)
+stacked.to_netcdf(filepath_out)
+
+# %%
