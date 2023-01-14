@@ -35,13 +35,13 @@ import pandas as pd
 # %%
 # Uncomment lines to choose processing NDVI or EVI
 
-var_raw = 'CMG 0.05 Deg Monthly NDVI'
-var_name = 'ndvi'
-var_longname = "0.05Deg Monthly NDVI"
+# var_raw = 'CMG 0.05 Deg Monthly NDVI'
+# var_name = 'ndvi'
+# var_longname = "0.05Deg Monthly NDVI"
 
-# var_raw = 'CMG 0.05 Deg Monthly EVI'
-# var_name = 'evi'
-# var_longname = "0.05Deg Monthly EVI"
+var_raw = 'CMG 0.05 Deg Monthly EVI'
+var_name = 'evi'
+var_longname = "0.05Deg Monthly EVI"
 
 # %%
 mod13c2_path_in = '/Users/moyanofe/BigData/GeoSpatial/MODIS/MOD13C2/v061_0.05deg'

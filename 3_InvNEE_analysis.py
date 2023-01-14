@@ -35,6 +35,7 @@ from xarrayutils.utils import linear_trend
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import numpy as np
+from scipy import stats
 
 # %%
 # Paths to files and other useful variables
@@ -337,29 +338,58 @@ vars = ['ndvi', 'evi']
 # inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 inversions = ['CSsEXT', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 periods = [(2001,2021), (2010,2021)]
+regions = kopp_mask # select the set of regions to analyise
 
 var = 'ndvi'
-inv = 'CSs99'
-period = (2001, 2021)
+period = (2001, 2020) # CAMSsur ends in 2020
 
 # Create a template dataframe to save correlation results
-df_ndvi = pd.DataFrame({'region': list(contlat_regions.keys()), 'nee_amp': inv, 'corr_r': np.nan, 'corr_sig': np.nan})
+df_template = pd.DataFrame({'region': list(regions.keys()), 'nee_amp': np.nan, 'lm_pval': np.nan, 'lm_rval': np.nan, 'lm_slope': np.nan})
 
-file_in_amp = os.path.join(output_dir, 'neeAmp_'+ inv +'.nc')
+file_reproj = os.path.join(output_dir, 'neeAmp_CSs10.nc') # This one is read in just to do reproject_match
 file_in_ndvi = os.path.join(vi_path, 'MOD13C2.A_ndvi2000-2022.061.nc')
-neeAmp = rio.open_rasterio(file_in_amp)
+neeReproj = rio.open_rasterio(file_reproj)
 ndvi = rio.open_rasterio(file_in_ndvi)
 ndvi = ndvi['ndvi']
+ndvi = ndvi.rio.reproject_match(neeReproj)
 
 # Select the period of interest
-neeAmp = neeAmp.sel(year=slice(period[0], period[1]))
 ndvi = ndvi.sel(time=slice(period[0], period[1]))
 
-for roi, roi_geom in contlat_regions.items():
-
-    neeAmp_roi = neeAmp.rio.clip([roi_geom]).mean(['x','y'])
-    ndvi_roi = ndvi.rio.clip([roi_geom]).mean(['x','y'])
-    neeAmp_vals = neeAmp_roi.values
-    ndvi_vals = ndvi_roi.values
-
+for count, inv in enumerate(inversions):
     
+    if(inv_startyear[inv]>period[0]):
+        continue
+    
+    df_temp = df_template.copy()
+    df_temp['nee_amp'] = inv
+
+    file_in_amp = os.path.join(output_dir, 'neeAmp_'+ inv +'.nc')
+    neeAmp = rio.open_rasterio(file_in_amp)
+    neeAmp = neeAmp.sel(year=slice(period[0], period[1]))  # Select the period of interest
+
+    for roi, roi_geom in regions.items():
+
+        try:
+            neeAmp_roi = neeAmp.rio.clip([roi_geom]).mean(['x','y'])
+            ndvi_roi = ndvi.rio.clip([roi_geom]).mean(['x','y'])
+        except:
+            neeAmp_roi = neeAmp.where(roi_geom).mean(['x','y'])
+            ndvi_roi = ndvi.where(roi_geom).mean(['x','y'])
+        
+        neeAmp_vals = neeAmp_roi.values
+        ndvi_vals = ndvi_roi.values / 10000 # The NDVI values are scaled in the gridded data by 10000
+        lm = stats.linregress(ndvi_vals, neeAmp_vals)
+        pval = np.round(lm.pvalue, 3)
+        rval = np.round(lm.rvalue, 2)
+        slope = np.round(lm.slope, 2)
+        df_temp.loc[(df_temp['region']==roi) & (df_temp['nee_amp']==inv), ['lm_pval']] = pval
+        df_temp.loc[(df_temp['region']==roi) & (df_temp['nee_amp']==inv), ['lm_rval']] = rval
+        df_temp.loc[(df_temp['region']==roi) & (df_temp['nee_amp']==inv), ['lm_slope']] = slope
+    
+    if(count==0):
+        df_ndvi = df_temp
+    else:
+        df_ndvi = pd.concat([df_ndvi, df_temp], axis=0, ignore_index=True)
+        
+df_ndvi.to_csv(os.path.join(output_dir, 'df_ndvi.csv'))
