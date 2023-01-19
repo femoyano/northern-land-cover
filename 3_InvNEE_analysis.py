@@ -334,14 +334,14 @@ plotRegionMeans(kopp_mask, inv_names)
 
 vi_path = '/Users/moyanofe/BigData/GeoSpatial/MODIS/MOD13C2'
 
-vars = ['ndvi', 'evi']
 # inversions = ['CSsEXT', 'CSs76', 'CSs81', 'CSs85', 'CSs93', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 inversions = ['CSsEXT', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
-periods = [(2001,2021), (2010,2021)]
-regions = kopp_mask # select the set of regions to analyise
-
+# select the set of regions to analyise
+regions = contlat_regions
+# regions = kopp_mask
 var = 'ndvi'
-period = (2001, 2020) # CAMSsur ends in 2020
+# period = (2001, 2020) # CAMSsur ends in 2020 (there should be an updated version!)
+period = (2010, 2020) # CAMSsur ends in 2020
 
 # Create a template dataframe to save correlation results
 df_template = pd.DataFrame({'region': list(regions.keys()), 'nee_amp': np.nan, 'lm_pval': np.nan, 'lm_rval': np.nan, 'lm_slope': np.nan})
