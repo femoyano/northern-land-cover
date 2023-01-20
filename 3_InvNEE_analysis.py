@@ -340,8 +340,10 @@ inversions = ['CSsEXT', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 regions = contlat_regions
 # regions = kopp_mask
 var = 'ndvi'
-# period = (2001, 2020) # CAMSsur ends in 2020 (there should be an updated version!)
-period = (2010, 2020) # CAMSsur ends in 2020
+period = (2001, 2020) # CAMSsur ends in 2020 (there should be an updated version!)
+# period = (2010, 2020) # CAMSsur ends in 2020
+
+detrend = True # If True, the correlation is done after subtracting a linear trend
 
 # Create a template dataframe to save correlation results
 df_template = pd.DataFrame({'region': list(regions.keys()), 'nee_amp': np.nan, 'lm_pval': np.nan, 'lm_rval': np.nan, 'lm_slope': np.nan})
@@ -379,6 +381,16 @@ for count, inv in enumerate(inversions):
         
         neeAmp_vals = neeAmp_roi.values
         ndvi_vals = ndvi_roi.values / 10000 # The NDVI values are scaled in the gridded data by 10000
+
+        if detrend:
+            x = np.arange(0,len(neeAmp_vals))
+            lm_neeAmp = stats.linregress(x, neeAmp_vals)
+            lm_ndvi = stats.linregress(x, ndvi_vals)
+            pred_neeAmp = lm_neeAmp.intercept + lm_neeAmp.slope * x
+            pred_ndvi = lm_ndvi.intercept + lm_ndvi.slope * x
+            neeAmp_vals = neeAmp_vals - pred_neeAmp
+            ndvi_vals = ndvi_vals - pred_ndvi
+
         lm = stats.linregress(ndvi_vals, neeAmp_vals)
         pval = np.round(lm.pvalue, 3)
         rval = np.round(lm.rvalue, 2)
@@ -392,4 +404,4 @@ for count, inv in enumerate(inversions):
     else:
         df_ndvi = pd.concat([df_ndvi, df_temp], axis=0, ignore_index=True)
         
-df_ndvi.to_csv(os.path.join(output_dir, 'df_ndvi.csv'))
+df_ndvi.to_csv(os.path.join(output_dir, 'df_'+var+str(period[0])+'-'+str(period[1])+'.csv'))
