@@ -339,9 +339,10 @@ inversions = ['CSsEXT', 'CSs99', 'CSs06', 'CSs10', 'CAMSsur', 'CAMSsat']
 # select the set of regions to analyise
 regions = contlat_regions
 # regions = kopp_mask
-var = 'ndvi'
-period = (2001, 2020) # CAMSsur ends in 2020 (there should be an updated version!)
-# period = (2010, 2020) # CAMSsur ends in 2020
+# var = 'ndvi'
+var = 'evi'
+# period = (2001, 2020) # CAMSsur ends in 2020 (there should be an updated version!)
+period = (2010, 2020) # CAMSsur ends in 2020
 
 detrend = True # If True, the correlation is done after subtracting a linear trend
 
@@ -349,14 +350,17 @@ detrend = True # If True, the correlation is done after subtracting a linear tre
 df_template = pd.DataFrame({'region': list(regions.keys()), 'nee_amp': np.nan, 'lm_pval': np.nan, 'lm_rval': np.nan, 'lm_slope': np.nan})
 
 file_reproj = os.path.join(output_dir, 'neeAmp_CSs10.nc') # This one is read in just to do reproject_match
-file_in_ndvi = os.path.join(vi_path, 'MOD13C2.A_ndvi2000-2022.061.nc')
+if(var=='ndvi'):
+    file_in_vi = os.path.join(vi_path, 'MOD13C2.A_ndvi2000-2022.061.nc')
+if(var=='evi'):
+    file_in_vi = os.path.join(vi_path, 'MOD13C2.A_evi2000-2022.061.nc')
 neeReproj = rio.open_rasterio(file_reproj)
-ndvi = rio.open_rasterio(file_in_ndvi)
-ndvi = ndvi['ndvi']
-ndvi = ndvi.rio.reproject_match(neeReproj)
+vi = rio.open_rasterio(file_in_vi)
+vi = vi[var]
+vi = vi.rio.reproject_match(neeReproj)
 
 # Select the period of interest
-ndvi = ndvi.sel(time=slice(period[0], period[1]))
+vi = vi.sel(time=slice(period[0], period[1]))
 
 for count, inv in enumerate(inversions):
     
@@ -374,24 +378,24 @@ for count, inv in enumerate(inversions):
 
         try:
             neeAmp_roi = neeAmp.rio.clip([roi_geom]).mean(['x','y'])
-            ndvi_roi = ndvi.rio.clip([roi_geom]).mean(['x','y'])
+            vi_roi = vi.rio.clip([roi_geom]).mean(['x','y'])
         except:
             neeAmp_roi = neeAmp.where(roi_geom).mean(['x','y'])
-            ndvi_roi = ndvi.where(roi_geom).mean(['x','y'])
+            vi_roi = vi.where(roi_geom).mean(['x','y'])
         
         neeAmp_vals = neeAmp_roi.values
-        ndvi_vals = ndvi_roi.values / 10000 # The NDVI values are scaled in the gridded data by 10000
+        vi_vals = vi_roi.values / 10000 # The NDVI values are scaled in the gridded data by 10000
 
         if detrend:
             x = np.arange(0,len(neeAmp_vals))
             lm_neeAmp = stats.linregress(x, neeAmp_vals)
-            lm_ndvi = stats.linregress(x, ndvi_vals)
+            lm_vi = stats.linregress(x, vi_vals)
             pred_neeAmp = lm_neeAmp.intercept + lm_neeAmp.slope * x
-            pred_ndvi = lm_ndvi.intercept + lm_ndvi.slope * x
+            pred_vi = lm_vi.intercept + lm_vi.slope * x
             neeAmp_vals = neeAmp_vals - pred_neeAmp
-            ndvi_vals = ndvi_vals - pred_ndvi
+            vi_vals = vi_vals - pred_vi
 
-        lm = stats.linregress(ndvi_vals, neeAmp_vals)
+        lm = stats.linregress(vi_vals, neeAmp_vals)
         pval = np.round(lm.pvalue, 3)
         rval = np.round(lm.rvalue, 2)
         slope = np.round(lm.slope, 2)
@@ -400,8 +404,11 @@ for count, inv in enumerate(inversions):
         df_temp.loc[(df_temp['region']==roi) & (df_temp['nee_amp']==inv), ['lm_slope']] = slope
     
     if(count==0):
-        df_ndvi = df_temp
+        df_vi = df_temp
     else:
-        df_ndvi = pd.concat([df_ndvi, df_temp], axis=0, ignore_index=True)
-        
-df_ndvi.to_csv(os.path.join(output_dir, 'df_'+var+str(period[0])+'-'+str(period[1])+'.csv'))
+        df_vi = pd.concat([df_vi, df_temp], axis=0, ignore_index=True)
+
+filename = 'vicorr_'+var+str(period[0])+'-'+str(period[1])+'.csv'
+if detrend:
+    filename = 'vicorr_'+var+str(period[0])+'-'+str(period[1])+'detrended.csv'
+df_vi.to_csv(os.path.join(output_dir, filename))
